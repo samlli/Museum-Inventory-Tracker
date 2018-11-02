@@ -4,16 +4,46 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#FFF"
     tools:context="com.blikoon.qrcodescannerlibrary.MainActivity">
 
     <Button
         android:id="@+id/button_start_scan"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:text="Click to scan"
+        android:layout_width="250dp"
+        android:layout_height="180dp"
+        android:background="@drawable/entry_button"
+        android:text="@string/entry_button"
+        android:textColor="#FFF"
+        android:textStyle="bold"
+        android:textSize="20dp"
+        android:typeface="monospace"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.241" />
+
+
+    <Button
+        android:id="@+id/send_email"
+        android:layout_width="250dp"
+        android:layout_height="80dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="332dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginRight="8dp"
+        android:background="@drawable/rounded_button"
+        android:text="@string/sendMail"
+        android:textColor="#FFF"
+        android:textStyle="bold"
+        android:textSize="20dp"
+        android:typeface="monospace"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.501"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+
 </android.support.constraint.ConstraintLayout>
+
