@@ -1,9 +1,11 @@
 package com.blikoon.qrcodescannerlibrary;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Environment;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -15,17 +17,28 @@ import android.widget.Toast;
 import com.blikoon.qrcodescanner.QrCodeActivity;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
     private Button button;
+    private Button sendMail;
     private static final int REQUEST_CODE_QR_SCAN = 101;
     private final String LOGTAG = "QRCScanner-MainActivity";
-    public boolean wasRackScanned = false;
+    public int scanState = 0;
+    public ArrayList<LogEntry> log = new ArrayList<>();
+    public String currentRack = "";
+    public String currentPainting = "";
+    //public static final int EMAIL_REQUEST = 999;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,9 +54,18 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        sendMail = (Button) findViewById(R.id.send_email);
+        sendMail.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //Start the qr scan activity
+                sendMail(getTotalLog(log));
+            }
+        });
+
         AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
-        alertDialog.setTitle("Scan");
-        alertDialog.setMessage("Please scan a rack");
+        alertDialog.setTitle("Summary");
+        alertDialog.setMessage("To make a new entry, please scan a rack");
         alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
@@ -51,6 +73,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
         alertDialog.show();
+        //ask how to add yes and no button
+
 
 
 
@@ -98,6 +122,7 @@ public class MainActivity extends AppCompatActivity {
             //BufferedReader in = new BufferedReader(new FileReader(Environment.DIRECTORY_DCIM + "/YourFolder/config.txt"));
             BufferedReader in = new BufferedReader(new FileReader(getApplicationContext().getFilesDir() + "/config.txt"));
             String line;
+
             while((line = in.readLine()) != null)
             {
                 Toast.makeText(getApplicationContext(), line,
@@ -117,9 +142,6 @@ public class MainActivity extends AppCompatActivity {
     public boolean rackScanned(String data)
     {
 
-        Toast.makeText(getApplicationContext(), data.split(" ", 2)[0],
-                Toast.LENGTH_LONG).show();
-
         if(data.split(" ", 2)[0].equals("Rack"))
         {
             return true;
@@ -134,9 +156,6 @@ public class MainActivity extends AppCompatActivity {
     public boolean paintingScanned(String data)
     {
 
-        Toast.makeText(getApplicationContext(), data.split(" ", 2)[0],
-                Toast.LENGTH_LONG).show();
-
         if(data.split(" ", 2)[0].equals("Painting:"))
         {
             return true;
@@ -147,6 +166,59 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+
+    private void sendMail(String totalLog)
+    {
+        Intent i = new Intent(Intent.ACTION_SEND);
+        i.setType("text/plain");
+        i.putExtra(Intent.EXTRA_EMAIL, new String[]{"jay18@duke.edu"});
+        i.putExtra(Intent.EXTRA_SUBJECT, "Log Update");
+        i.putExtra(Intent.EXTRA_TEXT, "See Attached");
+        File file = getTempFile(this, totalLog);
+        i.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,
+                getApplicationContext().getPackageName() + ".provider", file));
+
+        if(i.resolveActivity(getPackageManager()) != null)
+        {
+            startActivity(i);
+            //startActivityForResult(i, EMAIL_REQUEST);
+            //file.delete();
+        }
+
+
+    }
+
+    public File getTempFile(Context context, String networkReportBody)
+    {
+        File file = null;
+        try{
+            String fileName = "Network_report";
+            file = File.createTempFile(fileName, ".txt", context.getCacheDir());
+
+            FileWriter fw = new FileWriter(file.getAbsoluteFile());
+            BufferedWriter bw = new BufferedWriter(fw);
+            bw.write(networkReportBody);
+            bw.close();
+        }
+        catch (IOException e)
+        {
+           //Error while creating file
+        }
+
+        return file;
+    }
+
+    public String getTotalLog(ArrayList<LogEntry> currentLog)
+    {
+        String entries = "";
+        for(int i = 0; i < currentLog.size(); i++)
+        {
+            entries += currentLog.get(i).toString() + "\n";
+        }
+
+        return entries;
+    }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -193,40 +265,110 @@ public class MainActivity extends AppCompatActivity {
 
             alertDialog.show();*/
 
-            if(rackScanned(result))
+            if(scanState == 0)
             {
-                writeToFile(result);
-                retrieveFromFile();
+                if(rackScanned(result))
+                {
+                    writeToFile(result);
+                    retrieveFromFile();
+                    currentRack = result;
 
-                AlertDialog alertScanPainting = new AlertDialog.Builder(MainActivity.this).create();
-                alertScanPainting.setTitle("Summary");
-                alertScanPainting.setMessage(result + " Was Scanned \n" + "Please Scan Painting");
-                alertScanPainting.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        });
-                alertScanPainting.show();
+                    AlertDialog successfulRackScan = new AlertDialog.Builder(MainActivity.this).create();
+                    successfulRackScan.setTitle("Summary");
+                    successfulRackScan.setMessage(result + " Was Scanned \n" + "Please Scan a Painting");
+                    successfulRackScan.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+
+                    successfulRackScan.show();
+                    scanState++;
+                }
+                else
+                {
+                    AlertDialog failedRackScan = new AlertDialog.Builder(MainActivity.this).create();
+                    failedRackScan.setTitle("Summary");
+                    failedRackScan.setMessage("Oops, that was not a rack, please try again!");
+                    failedRackScan.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+                    failedRackScan.show();
+                }
+
+                Toast.makeText(getApplicationContext(), Integer.toString(scanState),
+                        Toast.LENGTH_LONG).show();
 
             }
 
-            if(paintingScanned(result))
+            else if(scanState == 1)
             {
-                writeToFile(result);
-                retrieveFromFile();
+                if(paintingScanned(result))
+                {
+                    writeToFile(result);
+                    retrieveFromFile();
+                    currentPainting = result;
+                    String time = Calendar.getInstance().getTime().toString();
+                    final LogEntry entry = new LogEntry(currentRack, currentPainting, time);
 
-                AlertDialog alertScanPainting = new AlertDialog.Builder(MainActivity.this).create();
-                alertScanPainting.setTitle("Summary");
-                alertScanPainting.setMessage(result + " Was Scanned");
-                alertScanPainting.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        });
-                alertScanPainting.show();
+                    AlertDialog successfulPaintingScan = new AlertDialog.Builder(MainActivity.this).create();
+                    successfulPaintingScan.setTitle("Summary");
+                    successfulPaintingScan.setMessage(entry.toString() + "\n\nIs this correct?");
+                    successfulPaintingScan.setButton(AlertDialog.BUTTON_NEUTRAL, "Yes",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    log.add(entry);
+
+                                }
+                            });
+
+                    successfulPaintingScan.setButton(AlertDialog.BUTTON_NEGATIVE, "No",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    AlertDialog failedPartner = new AlertDialog.Builder(MainActivity.this).create();
+                                    failedPartner.setTitle("Summary");
+                                    failedPartner.setMessage("We'll try again, please scan a rack");
+                                    failedPartner.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                                            new DialogInterface.OnClickListener() {
+                                                public void onClick(DialogInterface dialog, int which) {
+                                                    dialog.dismiss();
+                                                }
+                                            });
+                                    failedPartner.show();
+                                }
+                            });
+
+                    successfulPaintingScan.show();
+
+                    scanState--;
+
+                    //only put up new alert dialogue after pressing ok
+                }
+                else
+                {
+                    AlertDialog failedPaintingScan = new AlertDialog.Builder(MainActivity.this).create();
+                    failedPaintingScan.setTitle("Summary");
+                    failedPaintingScan.setMessage("Oops, that was not a painting, please try again!");
+                    failedPaintingScan.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+                    failedPaintingScan.show();
+                }
+                Toast.makeText(getApplicationContext(), Integer.toString(scanState),
+                        Toast.LENGTH_LONG).show();
+
             }
+
+
 
         }
     }
