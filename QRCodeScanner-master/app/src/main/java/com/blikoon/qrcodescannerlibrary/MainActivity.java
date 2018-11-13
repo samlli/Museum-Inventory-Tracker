@@ -19,10 +19,13 @@ import com.blikoon.qrcodescanner.QrCodeActivity;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -37,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
     public String currentRack = "";
     public String currentPainting = "";
     //public static final int EMAIL_REQUEST = 999;
+    private String LOG_FILE = "log_file";
 
 
 
@@ -59,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 //Start the qr scan activity
-                sendMail(getTotalLog(log));
+                sendMail();
             }
         });
 
@@ -76,11 +80,55 @@ public class MainActivity extends AppCompatActivity {
         //ask how to add yes and no button
 
 
-
-
     }
 
-    public void writeToFile(String data)
+    /////////////
+    public void writeFile(String fileContents) {
+        FileOutputStream outputStream;
+        String oldFileContents = "";
+
+        oldFileContents = readFile(LOG_FILE);
+        if(!oldFileContents.isEmpty()){
+            fileContents = oldFileContents + "\n" + fileContents;
+        }
+
+        try {
+            outputStream = openFileOutput(LOG_FILE, Context.MODE_PRIVATE);
+            outputStream.write(fileContents.getBytes());
+            outputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        readFile(LOG_FILE);
+    }
+
+    public String readFile(String fileName){
+        FileInputStream fileInputStream = null;
+        String readString = "";
+        try{
+            fileInputStream = openFileInput(fileName);
+            InputStreamReader isr = new InputStreamReader(fileInputStream);
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line);
+            }
+            bufferedReader.close();
+            readString = sb.toString();
+
+        }catch (FileNotFoundException e){
+            e.printStackTrace();
+        }catch (IOException eio){
+            eio.printStackTrace();
+        }
+
+        return readString;
+    }
+    //////////////
+
+    /*public void writeToFile(String data)
     {
         // Get the directory for the user's public pictures directory.
         String filePath = getApplicationContext().getFilesDir() + "/";
@@ -137,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.LENGTH_LONG).show();
         }
 
-    }
+    }*/
 
     public boolean rackScanned(String data)
     {
@@ -167,8 +215,9 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void sendMail(String totalLog)
+    private void sendMail()
     {
+        String totalLog = readFile(LOG_FILE);
         Intent i = new Intent(Intent.ACTION_SEND);
         i.setType("text/plain");
         i.putExtra(Intent.EXTRA_EMAIL, new String[]{"jay18@duke.edu"});
@@ -188,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public File getTempFile(Context context, String networkReportBody)
+    private File getTempFile(Context context, String networkReportBody)
     {
         File file = null;
         try{
@@ -199,6 +248,8 @@ public class MainActivity extends AppCompatActivity {
             BufferedWriter bw = new BufferedWriter(fw);
             bw.write(networkReportBody);
             bw.close();
+
+            deleteLogFile();
         }
         catch (IOException e)
         {
@@ -206,6 +257,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return file;
+    }
+
+    private Boolean deleteLogFile(){
+        File dir = getFilesDir();
+        File file = new File(dir, LOG_FILE);
+        boolean deleted = file.delete();
+
+        return deleted;
     }
 
     public String getTotalLog(ArrayList<LogEntry> currentLog)
@@ -269,8 +328,8 @@ public class MainActivity extends AppCompatActivity {
             {
                 if(rackScanned(result))
                 {
-                    writeToFile(result);
-                    retrieveFromFile();
+                    //writeToFile(result);
+                    //retrieveFromFile();
                     currentRack = result;
 
                     AlertDialog successfulRackScan = new AlertDialog.Builder(MainActivity.this).create();
@@ -309,11 +368,14 @@ public class MainActivity extends AppCompatActivity {
             {
                 if(paintingScanned(result))
                 {
-                    writeToFile(result);
-                    retrieveFromFile();
+                    //writeToFile(result);
+                    //retrieveFromFile();
                     currentPainting = result;
                     String time = Calendar.getInstance().getTime().toString();
                     final LogEntry entry = new LogEntry(currentRack, currentPainting, time);
+
+                    ///////
+                    writeFile(currentRack+" "+currentPainting);
 
                     AlertDialog successfulPaintingScan = new AlertDialog.Builder(MainActivity.this).create();
                     successfulPaintingScan.setTitle("Summary");
