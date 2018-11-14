@@ -30,6 +30,6 @@ public class LogEntry {
 
     public String toString()
     {
-        return painting + " was put on " + rack + " on " + time;
+        return painting + " was moved at " + time + " to " + rack;
     }
 }

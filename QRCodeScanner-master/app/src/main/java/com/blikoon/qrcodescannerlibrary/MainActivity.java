@@ -213,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
         String entries = "";
         for(int i = 0; i < currentLog.size(); i++)
         {
-            entries += currentLog.get(i).toString() + "\n";
+            entries += currentLog.get(i).toString() + "\n\n";
         }
 
         return entries;
