@@ -27,6 +27,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Calendar;
 
@@ -84,23 +85,60 @@ public class MainActivity extends AppCompatActivity {
 
     /////////////
     public void writeFile(String fileContents) {
-        FileOutputStream outputStream;
-        String oldFileContents = "";
+        ArrayList<String> oldContents = readLogFile();
 
-        oldFileContents = readFile(LOG_FILE);
-        if(!oldFileContents.isEmpty()){
-            fileContents = oldFileContents + "\n" + fileContents;
+        try{
+            File file = new File(LOG_FILE);
+            file.delete();
+            file = new File(this.getFilesDir(), LOG_FILE);
+
+            FileWriter fw = new FileWriter(file.getAbsoluteFile());
+            BufferedWriter bw = new BufferedWriter(fw);
+
+            if(!oldContents.isEmpty()){
+                oldContents.add(fileContents);
+                oldContents.set(0, oldContents.size()-1 +" scanned");
+                for(String line : oldContents){
+                    bw.write(line);
+                    bw.newLine();
+                }
+            }else{
+                bw.write("1 scanned");
+                bw.newLine();
+                bw.write(fileContents);
+            }
+
+            //bw.flush();
+            bw.close();
         }
-
-        try {
-            outputStream = openFileOutput(LOG_FILE, Context.MODE_PRIVATE);
-            outputStream.write(fileContents.getBytes());
-            outputStream.close();
-        } catch (Exception e) {
+        catch (IOException e)
+        {
             e.printStackTrace();
         }
 
-        readFile(LOG_FILE);
+        readLogFile();
+    }
+
+    public ArrayList<String> readLogFile(){
+        FileInputStream fileInputStream = null;
+        ArrayList<String> readContents = new ArrayList<String>();
+        try{
+            fileInputStream = openFileInput(LOG_FILE);
+            InputStreamReader isr = new InputStreamReader(fileInputStream);
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                readContents.add(line);
+            }
+            bufferedReader.close();
+
+        }catch (FileNotFoundException e){
+            e.printStackTrace();
+        }catch (IOException eio){
+            eio.printStackTrace();
+        }
+
+        return readContents;
     }
 
     public String readFile(String fileName){
@@ -217,13 +255,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void sendMail()
     {
-        String totalLog = readFile(LOG_FILE);
+        ArrayList<String> totalLogArray = readLogFile();
         Intent i = new Intent(Intent.ACTION_SEND);
         i.setType("text/plain");
         i.putExtra(Intent.EXTRA_EMAIL, new String[]{"jay18@duke.edu"});
         i.putExtra(Intent.EXTRA_SUBJECT, "Log Update");
         i.putExtra(Intent.EXTRA_TEXT, "See Attached");
-        File file = getTempFile(this, totalLog);
+        File file = getTempFile(this, totalLogArray);
         i.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,
                 getApplicationContext().getPackageName() + ".provider", file));
 
@@ -237,16 +275,21 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private File getTempFile(Context context, String networkReportBody)
+    private File getTempFile(Context context, ArrayList<String> totalLogArray)
     {
         File file = null;
         try{
-            String fileName = "Network_report";
+            String fileName = "Log_File";
             file = File.createTempFile(fileName, ".txt", context.getCacheDir());
 
             FileWriter fw = new FileWriter(file.getAbsoluteFile());
             BufferedWriter bw = new BufferedWriter(fw);
-            bw.write(networkReportBody);
+
+            for(String line : totalLogArray){
+                bw.write(line);
+                bw.newLine();
+            }
+
             bw.close();
 
             deleteLogFile();
