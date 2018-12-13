@@ -3,7 +3,8 @@ Deframentation is an app built specifically for the Nasher Museum of Art at Duke
 
 ## application
 
-![homepage](images/homepage.jpg "homepage")
+<img src="images/homepage.jpg" alt="homepage" height="600"/>
+
 Homepage of the app
 
 Features include:
@@ -21,17 +22,20 @@ Instructions for Use:
 4. When prompted, confirm whether painting and rack scanned are accurate.  If not, user will need to redo scanning.  If accurate, user has option to continue scanning or send email
 5. Send email button will open the default email application and prepopulate the recipient field.  It attaches a log file of all paintings and racks scanned since the last log send.
 
-![alert](images/alert.jpg "alert")
+<img src="images/alert.jpg" alt="alert" height="600"/>
+
 An example alert that appears when a painting is scanned before a rack
 
 ## phone dock
 
 stl files are included for wireless charging phone dock designed for use with [CHOETECH Wireless Charger](https://www.amazon.com/CHOETECH-Certified-Ultra-Slim-Compatible-Qi-Enabled/dp/B00C40OG22/) and [Samsung Galaxy J3 Eclipse](https://www.samsung.com/us/mobile/phones/all-other-phones/galaxy-j3-16gb-2017--unlocked--sm-j327uzkaxaa/)
 
-![dock](images/dock.jpg "dock")
+<img src="images/dock.jpg" alt="dock" height="400"/>
+
 dock with wireless charger in place
 
-![phone in dock](images/phone_in_dock.jpg "phone in dock")
+<img src="images/phone_in_dock" alt="phone in dock" height="400"/>
+
 Phone in place in dock
 
 `phoneholder.stl` is the first revision, `phoneholder2.stl` has been revised to have a larger cable routing channel and a lip to ensure phone doesn't slide out accidentally.
