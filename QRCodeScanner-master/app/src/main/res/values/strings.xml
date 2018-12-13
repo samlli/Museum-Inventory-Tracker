@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Nasher QR Scanner</string>
     <string name="sendMail">Send Email</string>
-    <string name="entry_button">New Entry\n\n or \n\nContinue Entry</string>
+    <string name="entry_button">Tap to create \n\n New Entry or \n\nContinue Entry</string>
 </resources>
