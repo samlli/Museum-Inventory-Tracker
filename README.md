@@ -34,7 +34,7 @@ stl files are included for wireless charging phone dock designed for use with [C
 
 dock with wireless charger in place
 
-<img src="images/phone_in_dock" alt="phone in dock" height="400"/>
+<img src="images/phone_in_dock.jpg" alt="phone in dock" height="400"/>
 
 Phone in place in dock
 
