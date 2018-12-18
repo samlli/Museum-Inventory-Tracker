@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.blikoon.qrcodescanner.QrCodeActivity;
@@ -27,12 +28,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
     private Button button;
     private Button sendMail;
+    private TextView numScans;
     private static final int REQUEST_CODE_QR_SCAN = 101;
     private final String LOGTAG = "QRCScanner-MainActivity";
     public int scanState = 0;
@@ -41,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     public String currentPainting = "";
     //public static final int EMAIL_REQUEST = 999;
     private String LOG_FILE = "log_file";
+    private int scans;
 
 
 
@@ -67,6 +71,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        numScans = (TextView) findViewById(R.id.num_scans);
+
         AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
         alertDialog.setTitle("Summary");
         alertDialog.setMessage("To make a new entry, please scan a rack");
@@ -84,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
 
     /////////////
     public void writeFile(String fileContents) {
-        FileOutputStream outputStream;
+        /*FileOutputStream outputStream;
         String oldFileContents = "";
 
         oldFileContents = readFile(LOG_FILE);
@@ -101,6 +107,63 @@ public class MainActivity extends AppCompatActivity {
         }
 
         readFile(LOG_FILE);
+        */
+        ArrayList<String> oldContents = readLogFile();
+
+        try{
+            File file = new File(LOG_FILE);
+            file.delete();
+            file = new File(this.getFilesDir(), LOG_FILE);
+
+            FileWriter fw = new FileWriter(file.getAbsoluteFile());
+            BufferedWriter bw = new BufferedWriter(fw);
+
+            if(!oldContents.isEmpty()){
+                oldContents.add(fileContents);
+                oldContents.set(0, oldContents.size()-1 +" scanned");
+                scans = oldContents.size()-1;
+                for(String line : oldContents){
+                    bw.write(line);
+                    bw.newLine();
+                }
+            }else{
+                bw.write("1 scanned");
+                scans = 1;
+                bw.newLine();
+                bw.write(fileContents);
+            }
+            numScans.setText("Paintings Scanned: " + scans);
+            //bw.flush();
+            bw.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+
+        readLogFile();
+    }
+
+    public ArrayList<String> readLogFile(){
+        FileInputStream fileInputStream = null;
+        ArrayList<String> readContents = new ArrayList<String>();
+        try{
+            fileInputStream = openFileInput(LOG_FILE);
+            InputStreamReader isr = new InputStreamReader(fileInputStream);
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                readContents.add(line);
+            }
+            bufferedReader.close();
+
+        }catch (FileNotFoundException e){
+            e.printStackTrace();
+        }catch (IOException eio){
+            eio.printStackTrace();
+        }
+
+        return readContents;
     }
 
     public String readFile(String fileName){
@@ -190,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean rackScanned(String data)
     {
 
-        if(data.split(" ", 2)[0].equals("Rack"))
+        if(data.split(" ", 2)[0].equals("Rack:"))
         {
             return true;
         }
@@ -217,13 +280,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void sendMail()
     {
-        String totalLog = readFile(LOG_FILE);
+        //String totalLog = readFile(LOG_FILE);
+        ArrayList<String> totalLogArray = readLogFile();
         Intent i = new Intent(Intent.ACTION_SEND);
         i.setType("text/plain");
         i.putExtra(Intent.EXTRA_EMAIL, new String[]{"jay18@duke.edu"});
         i.putExtra(Intent.EXTRA_SUBJECT, "Log Update");
         i.putExtra(Intent.EXTRA_TEXT, "See Attached");
-        File file = getTempFile(this, totalLog);
+        File file = getTempFile(this, totalLogArray);
         i.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,
                 getApplicationContext().getPackageName() + ".provider", file));
 
@@ -237,16 +301,22 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private File getTempFile(Context context, String networkReportBody)
+    //private File getTempFile(Context context, String networkReportBody)
+    private File getTempFile(Context context, ArrayList<String> totalLogArray)
     {
         File file = null;
         try{
-            String fileName = "Network_report";
+            String fileName = "Log_File";
             file = File.createTempFile(fileName, ".txt", context.getCacheDir());
 
             FileWriter fw = new FileWriter(file.getAbsoluteFile());
             BufferedWriter bw = new BufferedWriter(fw);
-            bw.write(networkReportBody);
+
+            for(String line : totalLogArray){
+                bw.write(line);
+                bw.newLine();
+            }
+
             bw.close();
 
             deleteLogFile();
@@ -359,8 +429,6 @@ public class MainActivity extends AppCompatActivity {
                     failedRackScan.show();
                 }
 
-                Toast.makeText(getApplicationContext(), Integer.toString(scanState),
-                        Toast.LENGTH_LONG).show();
 
             }
 
@@ -373,13 +441,18 @@ public class MainActivity extends AppCompatActivity {
                     currentPainting = result;
                     String time = Calendar.getInstance().getTime().toString();
                     final LogEntry entry = new LogEntry(currentRack, currentPainting, time);
+                    String [] realTime = time.split(" ");
+                    String timeString = realTime[0] + " " + realTime[1] + " "  + realTime[2];
+                    String content = currentPainting + " was moved on " + timeString + " to " + currentRack;
+                    ///////
+                    writeFile(content);
 
                     ///////
                     writeFile(currentRack+" "+currentPainting);
 
                     AlertDialog successfulPaintingScan = new AlertDialog.Builder(MainActivity.this).create();
                     successfulPaintingScan.setTitle("Summary");
-                    successfulPaintingScan.setMessage(entry.toString() + "\n\nIs this correct?");
+                    successfulPaintingScan.setMessage(content + "\n\nIs this correct?");
                     successfulPaintingScan.setButton(AlertDialog.BUTTON_NEUTRAL, "Yes",
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
@@ -425,8 +498,6 @@ public class MainActivity extends AppCompatActivity {
                             });
                     failedPaintingScan.show();
                 }
-                Toast.makeText(getApplicationContext(), Integer.toString(scanState),
-                        Toast.LENGTH_LONG).show();
 
             }
 
